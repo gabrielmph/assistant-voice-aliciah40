@@ -1,31 +1,35 @@
     <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            const widget = document.querySelector('elevenlabs-convai');
-            
-            widget.addEventListener('elevenlabs-convai:call-tool', async (event) => {
-                const { name, arguments: args, callback } = event.detail;
-                
-                if (name === 'web_search') {
-                    const searchQuery = args.query;
-                    try {
-                        // Swapping to a faster, ultra-reliable edge CDN proxy network
-                        const targetUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
-                        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
-                        const htmlText = await response.text();
-                        
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(htmlText, 'text/html');
-                        const snippets = Array.from(doc.querySelectorAll('.result__snippet'))
-                                              .slice(0, 3)
-                                              .map(el => el.textContent.trim())
-                                              .join(' ');
-                        
-                        callback({ success: true, result: snippets || "No search results found." });
-                    } catch (error) {
-                        // Fallback failure catcher
-                        callback({ success: false, error: "Network search lookup failed." });
-                    }
-                }
-            });
+        document.addEventListener("DOMContentLoaded", () => {
+            const widget = document.querySelector("elevenlabs-convai");
+
+            if (widget) {
+                // ElevenLabs requires client tools to be registered directly in the config object
+                widget.addEventListener("elevenlabs-convai:call", (event) => {
+                    event.detail.config.clientTools = {
+                        // The tool name here MUST exactly match your ElevenLabs dashboard tool name
+                        web_search: async (args) => {
+                            const searchQuery = args.query;
+                            try {
+                                // Direct, ultra-fast CORS edge proxy to grab search results
+                                const targetUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
+                                const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
+                                const htmlText = await response.text();
+                                
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(htmlText, 'text/html');
+                                const snippets = Array.from(doc.querySelectorAll('.result__snippet'))
+                                                      .slice(0, 3)
+                                                      .map(el => el.textContent.trim())
+                                                      .join(' ');
+                                
+                                // This returns the text data straight back into the voice engine stream
+                                return snippets || "No immediate search engine results found.";
+                            } catch (error) {
+                                return "Error attempting to search the live web.";
+                            }
+                        }
+                    };
+                });
+            }
         });
     </script>
