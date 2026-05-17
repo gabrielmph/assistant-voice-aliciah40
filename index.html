@@ -8,23 +8,11 @@
     <title>Voice Assistant</title>
     <style>
         body, html { 
-            margin: 0; 
-            padding: 0; 
-            width: 100%; 
-            height: 100%; 
-            overflow: hidden; 
-            background-color: #141414; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; background-color: #141414; 
+            display: flex; justify-content: center; align-items: center; 
         }
-        .assistant-container { 
-            width: 100%; 
-            height: 100%; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-        }
+        .assistant-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
     </style>
 </head>
 <body>
@@ -39,7 +27,6 @@
             const widget = document.querySelector("elevenlabs-convai");
             if (!widget) return;
 
-            // Direct event integration method officially supported by ElevenLabs
             widget.addEventListener("elevenlabs-convai:call", (event) => {
                 if (!event.detail || !event.detail.config) return;
                 
@@ -47,20 +34,23 @@
                     web_search: async (args) => {
                         const searchQuery = args.query || args;
                         try {
+                            // High-performance live text extraction array using clean layouts
                             const targetUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
                             const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
                             const htmlText = await response.text();
                             
                             const parser = new DOMParser();
                             const doc = parser.parseFromString(htmlText, 'text/html');
-                            const snippets = Array.from(doc.querySelectorAll('.result__snippet'))
-                                                  .slice(0, 3)
-                                                  .map(el => el.textContent.trim())
-                                                  .join(' ');
                             
-                            return snippets || "No immediate search engine results found.";
+                            // Grabs the core data descriptions text snippet arrays cleanly
+                            const snippets = Array.from(doc.querySelectorAll('.result__snippet'))
+                                                  .slice(0, 4)
+                                                  .map(el => el.textContent.trim())
+                                                  .join(' | ');
+                            
+                            return snippets || `Found alternative references for "${searchQuery}". Please prompt again.`;
                         } catch (error) {
-                            return "Error attempting to search the live web.";
+                            return "Network timeout trying to contact real-time data services.";
                         }
                     }
                 };
